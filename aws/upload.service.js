@@ -19,7 +19,7 @@ async function uploadFileToAws(file, foldername) {
         Bucket: process.env.Bucket,
         Key: `${foldername}/${randomName}`,
         Body: file.data,
-        ContentType: 'application/json; charset=utf-8',
+        ContentType: mimetype,
         ACL: 'public-read'
     } 
     
