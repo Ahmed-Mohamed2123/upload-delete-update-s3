@@ -70,45 +70,36 @@ async function deleteAudio(req, res, next) {
 
 async function updateAudio(req, res, next) {
     try {
-        if (req.files && req.files.audio) {
-            let audioFile = req.files.audio;
-
-            await Audio.findById(req.params.id)
-                .then(async (resultFeach) => {
-                    if (audioFile) {
-                        await fileUploadService.deleteFileToAws(resultFeach.audio);
-                        var uploadRes = await fileUploadService.uploadFileToAws(audioFile, 'audios');
-                    }
-
-                    await Audio.updateOne({_id: req.params.id}, {
-                        title: req.body.title,
-                        description: req.body.description,
-                        audio: uploadRes.fileUrl
-                    })
-                    .then(result => {
-                        res.status(200).json({
-                            message: 'Updated successfull!',
-                            result
-                        });
-                    })
-                    .catch(err => {
-                        res.status(500).json({
-                            message: "Couldn't update audio!"
-                        });
-                    })
-                }).catch(err => {
-                    res.status(500).json({
-                        message: 'Fetching audio failed!'
-                    });
-                });
-        } else {
-            const errMsg= {
-                message: 'FILES_NOT_FOUND',
-                messageCode: 'FILES_NOT_FOUND',
-                statusCode: 404,
-            }
-            return res.status(404).send(errMsg);
+        let title  = req.body.title;
+        let description  = req.body.description;
+        const audioImport = await Audio.findByIdAndUpdate(req.params.id);
+        if (title) {
+            audioImport.title = title;
         }
+        if (description) {
+            audioImport.description = description;
+        }
+        if (req.files) {
+            if (audioImport.audio) {
+                await fileUploadService.deleteFileToAws(audioImport.audio);
+            }
+            let audio = req.files.audio;
+            let file = await (await fileUploadService.uploadFileToAws(audio, 'audios')).fileUrl;
+
+            audioImport.audio = file;
+        }
+        
+        await audioImport.save().then(result => {
+            res.status(200).json({
+                result: result
+            });
+        }).catch(err => {
+            res.status(200).json({
+                message: "Couldn't update audio!",
+                error: err
+            });
+        });
+            
     } catch(error) {
         return next(error);
     }
